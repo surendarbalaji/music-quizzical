@@ -7,7 +7,7 @@ def registration():
         username = input("Enter a username: ")
         password = input("Enter a password: ")
 
-        with open("accounts.json", "r") as file:
+        with open("Quizzical/accounts.json", "r") as file:
             user_data = json.load(file)
         
         if username in user_data:
@@ -17,7 +17,7 @@ def registration():
         else:
             user_data[username] = password
 
-            with open("accounts.json", "w") as file:
+            with open("Quizzical/accounts.json", "w") as file:
                 json.dump(user_data, file)
 
             print("You are now on the list")
@@ -30,7 +30,7 @@ def login():
         username = input("Enter a username: ")
         password = input("Enter a password: ")
 
-        with open("accounts.json", "r") as file:
+        with open("Quizzical/accounts.json", "r") as file:
             user_data = json.load(file)
 
         if username in user_data and user_data[username] == password:
@@ -62,29 +62,51 @@ def tutorial():
     time.sleep(2)
     print("If you don't get it within 2, you lose")
     time.sleep(2)
+    print("You can also type [H] for a hint at any time, but it will cost you 3 points")
     print("Good luck")
     time.sleep(2)
 
-def question(songs, guesses):
+def question(songs, guesses, points):
     #chooses a random song and artist pair
     song, artist = random.choice(list(songs.items()))
     #splits the name into a list and iterates through each item taking the first letter and joins them together
     letters = "".join([word[0] for word in song.split()])
     response = input(f"{letters} by {artist}\n")
+    usedHints = 0
     
     while guesses > 0:
         if response.lower() == song.lower():
-            return True, guesses, song
+            return True, guesses, song, points
             break
+        elif response.lower() == "h" and points >= 3 and usedHints == 0:
+            print(f"Here are the second letters of each word: {' '.join([word[:2] for word in song.split()])}")
+            print(f"You have {points} points remaining. Please answer the question.")
+            usedHints += 1
+            points -= 3
+            response = input()
+        elif response.lower() == "h" and points >= 3 and usedHints == 1:
+            print(f"Here are the third letters of each word: {' '.join([word[:3] for word in song.split()])}")
+            print(f"You have {points} points remaining. Please answer the question.")
+            usedHints += 1
+            points -= 3
+            response = input()
+        elif response.lower() == "h" and points < 3 and usedHints < 2:
+            print("You do not have enough points for a hint. Please answer the question")
+            usedHints += 1
+            response = input()
+        elif response.lower() == "h" and usedHints == 2:
+            print("You have used the max number of hints for this question, please answer.")
+            response = input()
         elif guesses == 2:
             guesses -= 1
             response = input(f"Incorrect, you have 1 guess remaining. Please try again.\n")
         elif guesses == 1:
             guesses -= 1
-            return False, 0, song
+            print(f"Incorrect, the answer was {song}")
+            return False, 0, song, points
 
 def recordscore(username, points):
-    with open("leaderboard.json", "r") as file:
+    with open("Quizzical/leaderboard.json", "r") as file:
         leaderboard = json.load(file)
 
         #checks if user is in the leaderboard
@@ -111,7 +133,7 @@ def recordscore(username, points):
             if count == min(len(sortedleaderboard_dict), 5):
                 break
 
-        with open("leaderboard.json", "w") as file:
+        with open("Quizzical/leaderboard.json", "w") as file:
                 json.dump(sortedleaderboard_dict, file)
             
 
@@ -134,12 +156,12 @@ else:
 time.sleep(1)
 
 #initialises the song file into a dictionary
-with open("songs.json", "r") as file:
+with open("Quizzical/songs.json", "r") as file:
     songs = json.load(file)[selection]
 
 while True:
     guesses = 2
-    result, guesses, song = question(songs, guesses)
+    result, guesses, song, points = question(songs, guesses, points)
     del songs[song]
     if result:
         if guesses == 2:
@@ -154,4 +176,5 @@ while True:
         recordscore(username, points)
         again = input("Play again? [y/n] ").lower()
         if again == "n":
+            print("Hasta la vista")
             break
